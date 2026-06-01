@@ -578,4 +578,30 @@ The whole point of this stack is $0 cost. Discipline rules:
 
 ---
 
-*Last updated: week 0 — initial spec, $0 mode with BYOK and Pollinations.*
+*Last updated: week 1 shipped — 2026-06-01.*
+
+## Week 1 — Done (2026-06-01)
+
+**Acceptance criterion met:** live URL works, new sign-up creates a row in prod Supabase via Clerk webhook.
+
+**Shipped:**
+- pnpm 11 monorepo (apps/web, apps/api, packages/)
+- `apps/web`: Next.js 16 + Tailwind 4 + Clerk v7 on Vercel → https://ad-creative-generator-web.vercel.app
+- `apps/api`: NestJS 11 + Prisma 6 on Render → https://ad-creative-generator-kqpw.onrender.com
+- `/health` endpoint + UptimeRobot ping (5 min)
+- Prisma schema with `User { id, clerkId, email, name, createdAt, updatedAt }` synced to Supabase
+- Clerk webhook (Svix-verified) at `/webhooks/clerk` → upsert/delete User
+- Postgres on Supabase (free tier), Redis on Upstash (provisioned, idle until week 3)
+
+**Decisions log entries added:**
+- Next.js 16 / Tailwind 4 / React 19 (not spec's "Next 15").
+- Prisma 6 (not 7) — v7 removed `url` from datasource schema.
+- Clerk v7 (`<Show when="signed-in/out">` replaces `<SignedIn>`/`<SignedOut>`).
+
+**Cut from week 1:** nothing — on plan.
+
+**New gotchas to remember:**
+- **Supabase direct conn (`db.<ref>.supabase.co:5432`) is IPv6-only** — most home ISPs and Render free-tier don't route IPv6 → `P1001`. Use Supavisor Session pooler (5432) for migrations, Transaction pooler (6543) for runtime.
+- **Transaction pooler (6543) breaks Prisma migration locks.** `migrate deploy` / `db push` hangs on advisory lock through PgBouncer transaction mode. Migrations must go via Session pooler — set `directUrl = env("DIRECT_URL")` in `schema.prisma`.
+- **`nest build` outputs to `dist/src/` (not `dist/`) when any `.ts` file lives outside `src/`** (e.g. `prisma.config.ts` at api root). Fix: `tsconfig.build.json` needs `"include": ["src/**/*"]` AND exclude the stray file, otherwise `node dist/main` breaks on Render.
+- **`WEB_APP_URL` CORS origin must have no trailing slash** — NestJS does exact match; browser sends `Origin` without slash.

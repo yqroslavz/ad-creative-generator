@@ -1,0 +1,46 @@
+enum AdNetwork {
+  TABOOLA
+  OUTBRAIN
+  MGID
+  TIKTOK
+  REVCONTENT
+  ADSKEEPER
+}
+
+type Project {
+  id: ID!
+  name: String!
+  offerDescription: String!
+  targetAudience: String!
+  adNetwork: AdNetwork!
+  landingPageUrl: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input CreateProjectInput {
+  name: String!
+  offerDescription: String!
+  targetAudience: String!
+  adNetwork: AdNetwork!
+  landingPageUrl: String
+}
+
+input UpdateProjectInput {
+  name: String
+  offerDescription: String
+  targetAudience: String
+  adNetwork: AdNetwork
+  landingPageUrl: String
+}
+
+extend type Query {
+  projects: [Project!]!
+  project(id: ID!): Project
+}
+
+extend type Mutation {
+  createProject(input: CreateProjectInput!): Project!
+  updateProject(id: ID!, input: UpdateProjectInput!): Project!
+  deleteProject(id: ID!): Boolean!
+}

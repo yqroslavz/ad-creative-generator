@@ -3,6 +3,7 @@ packages:
   - 'packages/*'
 
 allowBuilds:
+  '@apollo/protobufjs': false
   '@clerk/shared': true
   '@nestjs/core': true
   '@prisma/client': true
