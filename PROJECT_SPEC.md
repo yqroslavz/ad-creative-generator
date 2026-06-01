@@ -578,7 +578,7 @@ The whole point of this stack is $0 cost. Discipline rules:
 
 ---
 
-*Last updated: week 1 shipped — 2026-06-01.*
+*Last updated: week 3 shipped — 2026-06-01.*
 
 ## Week 1 — Done (2026-06-01)
 
@@ -635,3 +635,34 @@ The whole point of this stack is $0 cost. Discipline rules:
 - **Clerk v7 `UserButton` dropped `afterSignOutUrl` prop.** Sign-out redirect is configured at provider/app level now.
 - **`nest build` assets:** `.graphql` files don't get copied to `dist/` unless `nest-cli.json` has `"assets": [{ "include": "**/*.graphql", "outDir": "dist" }]` + `"watchAssets": true`. Without this, schema-first runtime can't find the SDL.
 - **Clerk JWT template name is load-bearing.** `getToken({ template: 'graphql' })` returns `null` if no template named `graphql` exists in Clerk dashboard — request goes out without Authorization header and resolver throws Unauthenticated.
+
+## Week 3 — Done (2026-06-01)
+
+**Acceptance criterion met:** sign-up → create project → Generate N variants → see N text creatives on prod in < 30s; IP throttle returns 429 after 3 requests in 24h.
+
+**Shipped:**
+- Prisma: `GenerationStatus` + `TextProvider` enums, `GenerationRequest` + `Creative` models, reverse relations on User/Project, indexes on projectId / userId / createdAt / requestId
+- BullMQ producer (`GenerationQueueService`) + queue constants + Redis connection helper parsing `REDIS_URL` (TLS for `rediss://`, SNI servername, dual-stack DNS, 30s TCP keepalive)
+- Worker **co-located** in API process via `OnModuleInit` (Render free tier has no Background Workers); `worker.ts` + `WorkerModule` kept on disk for future paid-tier split
+- `AITextProvider` interface + `TextProviderFactory(userId, requested?)` resolving to Gemini live or Anthropic/OpenAI stubs that throw "requires BYOK — week 5"
+- `GeminiProvider` on `@google/genai` with `gemini-2.5-flash`, JSON mode via `responseSchema` (minItems/maxItems = n), per-item string validation
+- Per-network prompt templates: Taboola, Outbrain, MGID, TikTok, RevContent, AdsKeeper — each with real domain quirks (curiosity-driven vs Gen-Z vs direct-response, banned-word lists where relevant)
+- GraphQL: `generateCreatives(input)` mutation + `myGenerations(projectId?)` / `generationRequest(id)` queries; `@ResolveField('creatives')` for nested fetch
+- `RateLimitService` (Redis `INCR`/`EXPIRE`/`TTL`) + `GenerationThrottleGuard`: 10/h per user, 3/24h per IP. IP pulled from `x-forwarded-for` first hop (Render proxy) then `req.ip`
+- UI `GeneratePanel` on `/projects/[id]`: variant selector (1-10), generate button, status badges (PENDING/RUNNING/SUCCEEDED/FAILED), 3s polling auto-starts on non-terminal status and stops on terminal
+
+**Decisions log entries added:**
+- **Co-located worker over separate process.** Spec said "worker as separate process" but Render Background Workers are paid. Co-located keeps $0 binding; OS signal handling + concurrency 2 retained. Trade-off: Render free spins down after 15min idle; UI polling wakes it.
+- **`@google/genai` (new SDK) over `@google/generative-ai` (legacy).** New SDK is the documented surface; supports `responseSchema` cleanly.
+
+**Cut from week 3:**
+- Real provider validation ping for Anthropic/OpenAI (deferred to week 5 with BYOK).
+- "Regenerate single creative" — out of scope until week 5.
+
+**New gotchas to remember:**
+- **Upstash requires `rediss://` (TLS), not `redis://`.** Plain TCP on port 6379 reaches the server but every connection gets RST'd 1-2s in because the server expects TLS handshake before any Redis protocol byte. Symptom: `[Redis] Redis connected` → `ECONNRESET` looping; BullMQ `queue.add()` hangs forever; mutation never returns. Fix: one-letter env-var change on Render.
+- **BullMQ + ioredis version mismatch.** When bullmq's nested ioredis differs from top-level, passing an `IORedis` instance to `new Queue({ connection })` fails typecheck (`Type 'Redis' is not assignable to type 'ConnectionOptions'`). Pass the `RedisOptions` object instead — BullMQ creates its own connection internally.
+- **pnpm 11 dropped `pnpm.onlyBuiltDependencies` from `package.json`.** Use `pnpm-workspace.yaml`'s `allowBuilds` map. Render build fails with `[ERR_PNPM_IGNORED_BUILDS]` until each native dep (msgpackr-extract, @google/genai, protobufjs) is flipped to `true` there.
+- **ioredis defaults are wrong for serverless Redis.** Add `keepAlive: 30000` (TCP keepalive against NAT idle timeout), `tls: { servername: hostname }` (SNI for Upstash shared cert), and `family: 0` (dual-stack DNS for IPv6-egress hosts like Render).
+- **`@google/genai` JSON mode needs `responseSchema`, not just `responseMimeType`.** With only mime, the model often returns prose; with schema (including `minItems`/`maxItems`), output is reliably JSON-array of the declared shape.
+- **ESLint flat config: unused-param rule needs `argsIgnorePattern: '^_'` + `varsIgnorePattern: '^_'`** to allow `_apiKey`/`_prompt`/`_n` in stub providers without per-line disables.
