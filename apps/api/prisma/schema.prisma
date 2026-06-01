@@ -10,13 +10,14 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  clerkId   String    @unique
-  email     String    @unique
-  name      String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  projects  Project[]
+  id                 String              @id @default(cuid())
+  clerkId            String              @unique
+  email              String              @unique
+  name               String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  projects           Project[]
+  generationRequests GenerationRequest[]
 }
 
 enum AdNetwork {
@@ -29,16 +30,64 @@ enum AdNetwork {
 }
 
 model Project {
-  id               String    @id @default(cuid())
-  userId           String
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name             String
-  offerDescription String
-  targetAudience   String
-  adNetwork        AdNetwork
-  landingPageUrl   String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                 String              @id @default(cuid())
+  userId             String
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String
+  offerDescription   String
+  targetAudience     String
+  adNetwork          AdNetwork
+  landingPageUrl     String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  generationRequests GenerationRequest[]
 
   @@index([userId])
+}
+
+enum GenerationStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum TextProvider {
+  GEMINI
+  ANTHROPIC
+  OPENAI
+}
+
+model GenerationRequest {
+  id               String           @id @default(cuid())
+  projectId        String
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status           GenerationStatus @default(PENDING)
+  n                Int
+  textProviderUsed TextProvider?
+  error            String?
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  creatives        Creative[]
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Creative {
+  id          String            @id @default(cuid())
+  requestId   String
+  request     GenerationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  position    Int
+  headline    String
+  description String
+  cta         String
+  createdAt   DateTime          @default(now())
+
+  @@index([requestId])
 }
