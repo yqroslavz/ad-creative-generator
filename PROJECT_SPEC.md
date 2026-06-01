@@ -605,3 +605,33 @@ The whole point of this stack is $0 cost. Discipline rules:
 - **Transaction pooler (6543) breaks Prisma migration locks.** `migrate deploy` / `db push` hangs on advisory lock through PgBouncer transaction mode. Migrations must go via Session pooler — set `directUrl = env("DIRECT_URL")` in `schema.prisma`.
 - **`nest build` outputs to `dist/src/` (not `dist/`) when any `.ts` file lives outside `src/`** (e.g. `prisma.config.ts` at api root). Fix: `tsconfig.build.json` needs `"include": ["src/**/*"]` AND exclude the stray file, otherwise `node dist/main` breaks on Render.
 - **`WEB_APP_URL` CORS origin must have no trailing slash** — NestJS does exact match; browser sends `Origin` without slash.
+
+## Week 2 — Done (2026-06-01)
+
+**Acceptance criterion met:** create / list / delete project from production UI, end-to-end through GraphQL with Clerk auth.
+
+**Shipped:**
+- Prisma: `AdNetwork` enum + `Project` model (userId-scoped, cascade), `db push` to Supabase
+- API: NestJS + Apollo Server v4 via `@nestjs/apollo` (ApolloDriver, schema-first, `typePaths` glob on `dist/**/*.graphql`)
+- `ClerkAuthService` (verifies JWT via `@clerk/backend.verifyToken` with `secretKey`, resolves Prisma user), `GqlAuthGuard`, `@CurrentUser()` decorator
+- Resolvers: `me`, `projects`, `project`, `createProject`, `updateProject`, `deleteProject` — all userId-scoped via `findFirst { id, userId }` / `deleteMany` ownership guard
+- `DateTime` custom scalar (Date ↔ ISO string)
+- Apollo landing page (embed) in dev only; `cors: false` in GraphqlModule (Nest's `enableCors` handles it)
+- Web: Apollo Client v4 + `SetContextLink` injecting Clerk `graphql` JWT template per request
+- GraphQL Codegen client-preset → typed documents in `src/lib/gql/`
+- UI: `(dashboard)` route group with header, `/dashboard` (list + delete), `/projects/new` (form), `/projects/[id]` (detail stub)
+
+**Decisions log entries added:**
+- **Apollo Client v4** (not the v3 docs that flood Google). Breaking API changes: `ApolloProvider` moved to `@apollo/client/react`; `setContext` function replaced with `SetContextLink` class in `@apollo/client/link/context`.
+- **No shadcn/ui yet** — Tailwind v4 utilities only. Add shadcn in week 3+ if creative-preview UI needs richer primitives.
+- **Operations pattern:** call `graphql(\`…\`)` in `src/lib/graphql/operations.ts` so codegen scans them, but import the typed `*Document` consts from `@/lib/gql/graphql` directly. Going through the `graphql()` overload return type loses generics in `useQuery`.
+
+**Cut from week 2:** updateProject UI (resolver exists; no form yet — defer to week 3 when editing creatives matters).
+
+**New gotchas to remember:**
+- **`@nestjs/apollo` v13 + Express needs `@as-integrations/express5`** as a peer dep. Without it, GraphqlModule fails to boot with "package is missing".
+- **Apollo Client v4 `useQuery` typing requires `@graphql-typed-document-node/core`** as an explicit dep on the web app — pnpm doesn't auto-install it as a peer, and without it `data` resolves to `unknown` / `{}`.
+- **Codegen's `graphql()` overload-match is fragile** — relies on exact string-literal match of the source. Re-exporting `*Document` from generated `graphql.ts` is more reliable than relying on the overload return type for hook generics.
+- **Clerk v7 `UserButton` dropped `afterSignOutUrl` prop.** Sign-out redirect is configured at provider/app level now.
+- **`nest build` assets:** `.graphql` files don't get copied to `dist/` unless `nest-cli.json` has `"assets": [{ "include": "**/*.graphql", "outDir": "dist" }]` + `"watchAssets": true`. Without this, schema-first runtime can't find the SDL.
+- **Clerk JWT template name is load-bearing.** `getToken({ template: 'graphql' })` returns `null` if no template named `graphql` exists in Clerk dashboard — request goes out without Authorization header and resolver throws Unauthenticated.
