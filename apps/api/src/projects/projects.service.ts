@@ -49,7 +49,8 @@ export class ProjectsService {
     if (input.name != null) data.name = input.name;
     if (input.offerDescription != null)
       data.offerDescription = input.offerDescription;
-    if (input.targetAudience != null) data.targetAudience = input.targetAudience;
+    if (input.targetAudience != null)
+      data.targetAudience = input.targetAudience;
     if (input.adNetwork != null) data.adNetwork = input.adNetwork;
     if (input.landingPageUrl !== undefined)
       data.landingPageUrl = input.landingPageUrl;

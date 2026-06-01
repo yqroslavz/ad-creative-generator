@@ -19,7 +19,7 @@ type Documents = {
     "\n  mutation CreateProject($input: CreateProjectInput!) {\n    createProject(input: $input) {\n      id\n      name\n    }\n  }\n": typeof types.CreateProjectDocument,
     "\n  mutation DeleteProject($id: ID!) {\n    deleteProject(id: $id)\n  }\n": typeof types.DeleteProjectDocument,
     "\n  mutation GenerateCreatives($input: GenerateCreativesInput!) {\n    generateCreatives(input: $input) {\n      id\n      status\n      n\n      createdAt\n    }\n  }\n": typeof types.GenerateCreativesDocument,
-    "\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n      }\n    }\n  }\n": typeof types.MyGenerationsDocument,
+    "\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      imageModeUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n        imageUrl\n      }\n    }\n  }\n": typeof types.MyGenerationsDocument,
 };
 const documents: Documents = {
     "\n  query Projects {\n    projects {\n      id\n      name\n      adNetwork\n      offerDescription\n      targetAudience\n      landingPageUrl\n      createdAt\n      updatedAt\n    }\n  }\n": types.ProjectsDocument,
@@ -27,7 +27,7 @@ const documents: Documents = {
     "\n  mutation CreateProject($input: CreateProjectInput!) {\n    createProject(input: $input) {\n      id\n      name\n    }\n  }\n": types.CreateProjectDocument,
     "\n  mutation DeleteProject($id: ID!) {\n    deleteProject(id: $id)\n  }\n": types.DeleteProjectDocument,
     "\n  mutation GenerateCreatives($input: GenerateCreativesInput!) {\n    generateCreatives(input: $input) {\n      id\n      status\n      n\n      createdAt\n    }\n  }\n": types.GenerateCreativesDocument,
-    "\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n      }\n    }\n  }\n": types.MyGenerationsDocument,
+    "\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      imageModeUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n        imageUrl\n      }\n    }\n  }\n": types.MyGenerationsDocument,
 };
 
 /**
@@ -67,7 +67,7 @@ export function graphql(source: "\n  mutation GenerateCreatives($input: Generate
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function graphql(source: "\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n      }\n    }\n  }\n"): (typeof documents)["\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n      }\n    }\n  }\n"];
+export function graphql(source: "\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      imageModeUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n        imageUrl\n      }\n    }\n  }\n"): (typeof documents)["\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      imageModeUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n        imageUrl\n      }\n    }\n  }\n"];
 
 export function graphql(source: string) {
   return (documents as any)[source] ?? {};

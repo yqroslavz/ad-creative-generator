@@ -64,6 +64,7 @@ graphql(/* GraphQL */ `
       status
       n
       textProviderUsed
+      imageModeUsed
       error
       startedAt
       finishedAt
@@ -74,6 +75,7 @@ graphql(/* GraphQL */ `
         headline
         description
         cta
+        imageUrl
       }
     }
   }

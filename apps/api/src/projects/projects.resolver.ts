@@ -5,10 +5,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { GqlAuthGuard } from '../auth/gql-auth.guard';
 import type { AuthUser } from '../auth/auth.types';
 import { ProjectsService } from './projects.service';
-import type {
-  CreateProjectInput,
-  UpdateProjectInput,
-} from './projects.types';
+import type { CreateProjectInput, UpdateProjectInput } from './projects.types';
 
 @Resolver('Project')
 @UseGuards(GqlAuthGuard)

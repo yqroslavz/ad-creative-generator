@@ -5,6 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { Worker, type Job } from 'bullmq';
+import type { ImageMode } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   GENERATION_QUEUE,
@@ -13,7 +14,9 @@ import {
 } from '../queue/queue.constants';
 import { buildRedisConnectionOptions } from '../queue/redis.connection';
 import { buildPrompt } from './prompts';
+import { ImageStrategyService } from './providers/image/image-strategy.service';
 import { TextProviderFactory } from './providers/text/text-provider.factory';
+import type { CreativeText } from './providers/text/ai-text-provider.interface';
 
 @Injectable()
 export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
@@ -23,6 +26,7 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly textProviders: TextProviderFactory,
+    private readonly imageStrategy: ImageStrategyService,
   ) {}
 
   onModuleInit(): void {
@@ -67,16 +71,31 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
         landingPageUrl: request.project.landingPageUrl,
       });
 
-      const creatives = await provider.generate(prompt, request.n);
+      const texts = await provider.generate(prompt, request.n);
+
+      const imageResults = await Promise.all(
+        texts.map((text, idx) =>
+          this.generateImageSafely(
+            requestId,
+            idx,
+            text,
+            request.project.adNetwork,
+          ),
+        ),
+      );
+
+      const successfulMode = imageResults.find((r) => r !== null)?.mode ?? null;
 
       await this.prisma.$transaction([
         this.prisma.creative.createMany({
-          data: creatives.map((c, idx) => ({
+          data: texts.map((c, idx) => ({
             requestId,
             position: idx,
             headline: c.headline,
             description: c.description,
             cta: c.cta,
+            imageUrl: imageResults[idx]?.url ?? null,
+            imagePromptUsed: imageResults[idx]?.promptUsed ?? null,
           })),
         }),
         this.prisma.generationRequest.update({
@@ -84,13 +103,14 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
           data: {
             status: 'SUCCEEDED',
             textProviderUsed: provider.id,
+            imageModeUsed: successfulMode,
             finishedAt: new Date(),
           },
         }),
       ]);
 
       this.logger.log(
-        `Job ${job.id} succeeded: ${creatives.length} creatives via ${provider.id}`,
+        `Job ${job.id} succeeded: ${texts.length} creatives, text=${provider.id}, image=${successfulMode ?? 'NONE'}`,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -102,7 +122,31 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private async generateImageSafely(
+    requestId: string,
+    idx: number,
+    text: CreativeText,
+    network: GenerateImageInput['network'],
+  ): Promise<{ url: string; mode: ImageMode; promptUsed: string } | null> {
+    try {
+      return await this.imageStrategy.generateAndUpload(
+        requestId,
+        idx,
+        { headline: text.headline, cta: text.cta, network },
+        false,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Image gen failed for ${requestId}#${idx}: ${message}`);
+      return null;
+    }
+  }
+
   async onModuleDestroy(): Promise<void> {
     if (this.worker) await this.worker.close();
   }
 }
+
+type GenerateImageInput = Parameters<
+  ImageStrategyService['generateAndUpload']
+>[2];

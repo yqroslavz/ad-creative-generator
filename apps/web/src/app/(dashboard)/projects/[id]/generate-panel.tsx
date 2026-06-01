@@ -8,6 +8,7 @@ import {
 } from '@/lib/graphql/operations';
 
 type Status = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
+type ImageMode = 'POLLINATIONS' | 'BYOK_DALLE' | 'SVG_FALLBACK';
 
 const TERMINAL: ReadonlySet<Status> = new Set(['SUCCEEDED', 'FAILED']);
 
@@ -16,6 +17,12 @@ const statusStyle: Record<Status, string> = {
   RUNNING: 'bg-blue-100 text-blue-700',
   SUCCEEDED: 'bg-green-100 text-green-700',
   FAILED: 'bg-red-100 text-red-700',
+};
+
+const imageModeLabel: Record<ImageMode, string> = {
+  POLLINATIONS: 'AI image',
+  BYOK_DALLE: 'Premium AI',
+  SVG_FALLBACK: 'Preview',
 };
 
 export function GeneratePanel({ projectId }: { projectId: string }) {
@@ -141,17 +148,39 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
                 {g.creatives.map((c) => (
                   <li
                     key={c.id}
-                    className="rounded-md border border-gray-100 bg-gray-50 p-3"
+                    className="overflow-hidden rounded-md border border-gray-100 bg-gray-50"
                   >
-                    <p className="text-sm font-semibold text-gray-900">
-                      {c.headline}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-700">
-                      {c.description}
-                    </p>
-                    <p className="mt-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-                      CTA: {c.cta}
-                    </p>
+                    <div className="relative aspect-square w-full bg-gray-200">
+                      {c.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={c.imageUrl}
+                          alt={c.headline}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
+                          {g.status === 'RUNNING' ? 'Generating…' : 'No image'}
+                        </div>
+                      )}
+                      {g.imageModeUsed && c.imageUrl && (
+                        <span className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
+                          {imageModeLabel[g.imageModeUsed as ImageMode]}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {c.headline}
+                      </p>
+                      <p className="mt-1 text-sm text-gray-700">
+                        {c.description}
+                      </p>
+                      <p className="mt-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+                        CTA: {c.cta}
+                      </p>
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -33,9 +33,7 @@ export class ClerkAuthService {
       if (!payload.sub) return null;
       clerkId = payload.sub;
     } catch (err) {
-      this.logger.warn(
-        `Token verification failed: ${(err as Error).message}`,
-      );
+      this.logger.warn(`Token verification failed: ${(err as Error).message}`);
       return null;
     }
 

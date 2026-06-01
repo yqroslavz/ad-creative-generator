@@ -58,6 +58,12 @@ enum TextProvider {
   OPENAI
 }
 
+enum ImageMode {
+  POLLINATIONS
+  BYOK_DALLE
+  SVG_FALLBACK
+}
+
 model GenerationRequest {
   id               String           @id @default(cuid())
   projectId        String
@@ -67,6 +73,7 @@ model GenerationRequest {
   status           GenerationStatus @default(PENDING)
   n                Int
   textProviderUsed TextProvider?
+  imageModeUsed    ImageMode?
   error            String?
   startedAt        DateTime?
   finishedAt       DateTime?
@@ -80,14 +87,16 @@ model GenerationRequest {
 }
 
 model Creative {
-  id          String            @id @default(cuid())
-  requestId   String
-  request     GenerationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  position    Int
-  headline    String
-  description String
-  cta         String
-  createdAt   DateTime          @default(now())
+  id              String            @id @default(cuid())
+  requestId       String
+  request         GenerationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  position        Int
+  headline        String
+  description     String
+  cta             String
+  imageUrl        String?
+  imagePromptUsed String?
+  createdAt       DateTime          @default(now())
 
   @@index([requestId])
 }
