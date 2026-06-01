@@ -45,9 +45,45 @@ graphql(/* GraphQL */ `
   }
 `);
 
+graphql(/* GraphQL */ `
+  mutation GenerateCreatives($input: GenerateCreativesInput!) {
+    generateCreatives(input: $input) {
+      id
+      status
+      n
+      createdAt
+    }
+  }
+`);
+
+graphql(/* GraphQL */ `
+  query MyGenerations($projectId: ID) {
+    myGenerations(projectId: $projectId) {
+      id
+      projectId
+      status
+      n
+      textProviderUsed
+      error
+      startedAt
+      finishedAt
+      createdAt
+      creatives {
+        id
+        position
+        headline
+        description
+        cta
+      }
+    }
+  }
+`);
+
 export {
   ProjectsDocument,
   ProjectDocument,
   CreateProjectDocument,
   DeleteProjectDocument,
+  GenerateCreativesDocument,
+  MyGenerationsDocument,
 } from '@/lib/gql/graphql';

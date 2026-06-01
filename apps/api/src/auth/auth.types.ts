@@ -6,4 +6,5 @@ export interface AuthUser {
 
 export interface GqlContext {
   user: AuthUser | null;
+  ip: string | null;
 }

@@ -4,6 +4,7 @@ import { use } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@apollo/client/react';
 import { ProjectDocument } from '@/lib/graphql/operations';
+import { GeneratePanel } from './generate-panel';
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -45,9 +46,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <Row label="Created">{new Date(p.createdAt).toLocaleString()}</Row>
       </dl>
 
-      <p className="text-sm text-gray-500">
-        Creative generation coming in Week 3.
-      </p>
+      <GeneratePanel projectId={p.id} />
     </div>
   );
 }

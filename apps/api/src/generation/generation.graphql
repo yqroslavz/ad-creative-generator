@@ -1,0 +1,50 @@
+enum GenerationStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum TextProvider {
+  GEMINI
+  ANTHROPIC
+  OPENAI
+}
+
+type Creative {
+  id: ID!
+  position: Int!
+  headline: String!
+  description: String!
+  cta: String!
+  createdAt: DateTime!
+}
+
+type GenerationRequest {
+  id: ID!
+  projectId: ID!
+  status: GenerationStatus!
+  n: Int!
+  textProviderUsed: TextProvider
+  error: String
+  startedAt: DateTime
+  finishedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  creatives: [Creative!]!
+}
+
+input GenerateCreativesInput {
+  projectId: ID!
+  n: Int!
+  textProvider: TextProvider
+}
+
+extend type Query {
+  myGenerations(projectId: ID): [GenerationRequest!]!
+  generationRequest(id: ID!): GenerationRequest
+}
+
+extend type Mutation {
+  generateCreatives(input: GenerateCreativesInput!): GenerationRequest!
+}
