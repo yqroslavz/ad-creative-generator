@@ -9,14 +9,16 @@ export function buildRedisConnectionOptions(): RedisOptions {
 
   const options: RedisOptions = {
     host: parsed.hostname,
-    port: Number(parsed.port || (useTls ? 6379 : 6379)),
+    port: Number(parsed.port || 6379),
     username: parsed.username || undefined,
     password: parsed.password ? decodeURIComponent(parsed.password) : undefined,
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
+    keepAlive: 30000,
+    family: 0,
   };
 
-  if (useTls) options.tls = {};
+  if (useTls) options.tls = { servername: parsed.hostname };
 
   return options;
 }
