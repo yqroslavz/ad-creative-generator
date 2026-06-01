@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: acg-postgres
+    environment:
+      POSTGRES_USER: acg
+      POSTGRES_PASSWORD: acg
+      POSTGRES_DB: acg
+    ports:
+      - '5432:5432'
+    volumes:
+      - acg-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U acg -d acg']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: acg-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - acg-redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  acg-pg:
+  acg-redis:
