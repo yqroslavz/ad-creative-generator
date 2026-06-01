@@ -11,12 +11,19 @@ enum TextProvider {
   OPENAI
 }
 
+enum ImageMode {
+  POLLINATIONS
+  BYOK_DALLE
+  SVG_FALLBACK
+}
+
 type Creative {
   id: ID!
   position: Int!
   headline: String!
   description: String!
   cta: String!
+  imageUrl: String
   createdAt: DateTime!
 }
 
@@ -26,6 +33,7 @@ type GenerationRequest {
   status: GenerationStatus!
   n: Int!
   textProviderUsed: TextProvider
+  imageModeUsed: ImageMode
   error: String
   startedAt: DateTime
   finishedAt: DateTime
