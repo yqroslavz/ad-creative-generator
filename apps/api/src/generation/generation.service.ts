@@ -40,6 +40,7 @@ export class GenerationService {
         userId,
         n: input.n,
         textProviderUsed: input.textProvider ?? null,
+        imageModeUsed: input.imageMode ?? null,
       },
     });
 

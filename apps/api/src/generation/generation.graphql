@@ -46,6 +46,7 @@ input GenerateCreativesInput {
   projectId: ID!
   n: Int!
   textProvider: TextProvider
+  imageMode: ImageMode
 }
 
 extend type Query {

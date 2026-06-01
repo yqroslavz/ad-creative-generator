@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CredentialsModule } from '../credentials/credentials.module';
 import { StorageModule } from '../storage/storage.module';
 import { GenerationWorkerService } from './generation-worker.service';
 import { GenerationResolver } from './generation.resolver';
@@ -12,7 +13,7 @@ import { SvgFallbackProvider } from './providers/image/svg-fallback.provider';
 import { TextProviderFactory } from './providers/text/text-provider.factory';
 
 @Module({
-  imports: [StorageModule],
+  imports: [StorageModule, CredentialsModule],
   providers: [
     GenerationWorkerService,
     GenerationService,

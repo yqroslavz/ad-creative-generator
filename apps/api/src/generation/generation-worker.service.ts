@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Worker, type Job } from 'bullmq';
 import type { ImageMode } from '@prisma/client';
+import { workerContextStorage } from '../credentials/worker-context';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   GENERATION_QUEUE,
@@ -32,7 +33,11 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     this.worker = new Worker<GenerateTextJobData>(
       GENERATION_QUEUE,
-      (job) => this.process(job),
+      (job) =>
+        workerContextStorage.run(
+          { jobId: String(job.id ?? ''), requestId: job.data.requestId },
+          () => this.process(job),
+        ),
       {
         connection: buildRedisConnectionOptions(),
         concurrency: 2,
@@ -64,7 +69,10 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
     });
 
     try {
-      const provider = this.textProviders.resolve(request.userId, null);
+      const { provider, wasBYOK } = await this.textProviders.resolve(
+        request.userId,
+        request.textProviderUsed,
+      );
       const prompt = buildPrompt(request.project.adNetwork, {
         offer: request.project.offerDescription,
         audience: request.project.targetAudience,
@@ -73,6 +81,8 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
 
       const texts = await provider.generate(prompt, request.n);
 
+      const useByokDalle = request.imageModeUsed === 'BYOK_DALLE';
+
       const imageResults = await Promise.all(
         texts.map((text, idx) =>
           this.generateImageSafely(
@@ -80,6 +90,8 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
             idx,
             text,
             request.project.adNetwork,
+            request.userId,
+            useByokDalle,
           ),
         ),
       );
@@ -103,6 +115,7 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
           data: {
             status: 'SUCCEEDED',
             textProviderUsed: provider.id,
+            textWasBYOK: wasBYOK,
             imageModeUsed: successfulMode,
             finishedAt: new Date(),
           },
@@ -110,7 +123,7 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
       ]);
 
       this.logger.log(
-        `Job ${job.id} succeeded: ${texts.length} creatives, text=${provider.id}, image=${successfulMode ?? 'NONE'}`,
+        `Job ${job.id} succeeded: ${texts.length} creatives, text=${provider.id}${wasBYOK ? ' (BYOK)' : ''}, image=${successfulMode ?? 'NONE'}`,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -127,13 +140,15 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
     idx: number,
     text: CreativeText,
     network: GenerateImageInput['network'],
+    userId: string,
+    useByokDalle: boolean,
   ): Promise<{ url: string; mode: ImageMode; promptUsed: string } | null> {
     try {
       return await this.imageStrategy.generateAndUpload(
         requestId,
         idx,
-        { headline: text.headline, cta: text.cta, network },
-        false,
+        { headline: text.headline, cta: text.cta, network, userId },
+        useByokDalle,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
