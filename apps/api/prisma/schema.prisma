@@ -18,6 +18,21 @@ model User {
   updatedAt          DateTime            @updatedAt
   projects           Project[]
   generationRequests GenerationRequest[]
+  apiKeys            UserApiKey[]
+}
+
+model UserApiKey {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     TextProvider
+  encryptedKey String       @db.Text
+  keyPreview   String
+  createdAt    DateTime     @default(now())
+  lastUsedAt   DateTime?
+
+  @@unique([userId, provider])
+  @@index([userId])
 }
 
 enum AdNetwork {
@@ -73,6 +88,7 @@ model GenerationRequest {
   status           GenerationStatus @default(PENDING)
   n                Int
   textProviderUsed TextProvider?
+  textWasBYOK      Boolean          @default(false)
   imageModeUsed    ImageMode?
   error            String?
   startedAt        DateTime?

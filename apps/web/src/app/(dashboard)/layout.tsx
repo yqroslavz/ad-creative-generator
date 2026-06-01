@@ -10,7 +10,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <Link href="/dashboard" className="text-lg font-semibold tracking-tight">
             Ad-Creative Generator
           </Link>
-          <UserButton />
+          <nav className="flex items-center gap-6 text-sm text-gray-600">
+            <Link href="/dashboard" className="hover:text-black">
+              Projects
+            </Link>
+            <Link href="/settings/api-keys" className="hover:text-black">
+              API keys
+            </Link>
+            <UserButton />
+          </nav>
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">{children}</main>
