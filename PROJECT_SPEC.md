@@ -666,3 +666,36 @@ The whole point of this stack is $0 cost. Discipline rules:
 - **ioredis defaults are wrong for serverless Redis.** Add `keepAlive: 30000` (TCP keepalive against NAT idle timeout), `tls: { servername: hostname }` (SNI for Upstash shared cert), and `family: 0` (dual-stack DNS for IPv6-egress hosts like Render).
 - **`@google/genai` JSON mode needs `responseSchema`, not just `responseMimeType`.** With only mime, the model often returns prose; with schema (including `minItems`/`maxItems`), output is reliably JSON-array of the declared shape.
 - **ESLint flat config: unused-param rule needs `argsIgnorePattern: '^_'` + `varsIgnorePattern: '^_'`** to allow `_apiKey`/`_prompt`/`_n` in stub providers without per-line disables.
+
+## Week 4 — Done (2026-06-02)
+
+**Acceptance criterion met:** project → Generate 5 → 5 creatives with AI images visible on prod in < 60s; Pollinations failure path falls back to SVG without manual intervention; assets served from Supabase Storage public bucket.
+
+**Shipped:**
+- Prisma: `ImageMode` enum (`POLLINATIONS` / `BYOK_DALLE` / `SVG_FALLBACK`); `Creative.imageUrl` + `Creative.imagePromptUsed`; `GenerationRequest.imageModeUsed`
+- `S3Service` on `@aws-sdk/client-s3` against Supabase S3-compatible endpoint (`forcePathStyle: true`, region `eu-central-1`, `CacheControl: public, max-age=31536000, immutable`); returns public URL via `${SUPABASE_STORAGE_PUBLIC_URL}/${encodeURI(key)}`
+- `ImageProvider` interface + three implementations:
+  - `PollinationsProvider` — `image.pollinations.ai/prompt/...` with 10s `AbortController` timeout, content-type + min-size guard
+  - `SvgFallbackProvider` — `satori` (plain-object tree) + `@resvg/resvg-js` → 1024×1024 PNG, per-network linear-gradient, Inter Bold from `@fontsource/inter`
+  - `DalleProvider` — stub throwing "requires BYOK OpenAI key — week 5"
+- `ImageStrategyService` — cascade `[dalle?, pollinations, svg]`, per-step try/catch with logged failures, uploads via S3Service at key `<requestId>/<idx>.<ext>`, returns `{ url, mode, promptUsed }`
+- Worker integration: `Promise.all` over text creatives → `generateImageSafely` swallows per-creative image errors (text wins are preserved); transaction writes `imageUrl` + `imagePromptUsed` on Creative and the first successful `imageModeUsed` on GenerationRequest
+- GraphQL surface: `Creative.imageUrl`, `GenerationRequest.imageModeUsed`, `ImageMode` enum
+- UI: aspect-square image tile per creative, "Generating…" placeholder while RUNNING, top-right source badge (`AI image` / `Premium AI` / `Preview`) keyed off `imageModeUsed`
+
+**Decisions log entries added:**
+- **`satori` + `@resvg/resvg-js` over `@vercel/og`.** `@vercel/og` targets edge runtime; resvg-js ships napi-rs prebuilds, runs cleanly on Render Node and doesn't need an extra `allowBuilds` entry.
+- **`Promise.all` over chunked concurrency for image fan-out.** Max 10 creatives per request; Pollinations is I/O-bound; 10 parallel fetches fit Render free 512MB easily. No queue overhead.
+- **Per-creative image failures don't fail the request.** If an image step throws, `imageUrl` is `null` for that creative but text creatives still ship and `imageModeUsed` reflects whichever mode succeeded first. Avoids losing Gemini's text work to a flaky image endpoint.
+
+**Cut from week 4:**
+- BYOK DALL-E live path (stubbed; lands in week 5 with `CredentialsService`).
+- `regenerateCreative` mutation — out of scope until week 5.
+- Real-time progress via SSE — week 5; polling at 3s is good enough for now.
+
+**New gotchas to remember:**
+- **`satori` typings reject plain-object trees without `key` on each node.** TS complains `Type ... is missing properties from type 'ReactPortal': children, key`. Fixes without adding `@types/react`: add `key` to every node and cast at the call site as `satori(tree as unknown as Parameters<typeof satori>[0], options)`. JSX would also work but requires React types in the API package.
+- **Supabase S3 endpoint requires `forcePathStyle: true`.** Virtual-host style (the AWS default) resolves to a wrong subdomain and 404s. Endpoint shape: `https://<project>.storage.supabase.co/storage/v1/s3`; public URL base is a different host: `https://<project>.supabase.co/storage/v1/object/public/<bucket>`.
+- **Rate-limit counters survive deploys.** A capped IP from week 3 silently blocked the week 4 acceptance test — guard rejects *before* `GenerationRequest` is created, so the only signal is "nothing happens": no row, no worker log, no storage object. Diagnostic order is reversed (check Redis counters first, not worker logs). One-shot fix: Upstash Console FLUSHDB.
+- **`@fontsource/inter` font path resolved via `require.resolve('@fontsource/inter/package.json')` + `dirname`.** Resolving the woff directly fails under pnpm's nested store; resolving the package.json then joining `files/inter-latin-700-normal.woff` works because the package.json export map allows that path.
+- **Worker image cascade must record `imageModeUsed` from the first success, not from the last attempted provider.** Otherwise a flow that tried POLLINATIONS → fell back to SVG records `SVG_FALLBACK` for the request even though most creatives are real Pollinations PNGs (or vice versa). Read it from `imageResults.find(r => r !== null)?.mode`.
