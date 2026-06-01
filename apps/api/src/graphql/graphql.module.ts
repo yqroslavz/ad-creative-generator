@@ -26,7 +26,12 @@ import { DateTimeScalar } from './datetime.scalar';
           context: async ({ req }: { req: Request }): Promise<GqlContext> => {
             const authHeader = req.headers.authorization;
             const user = await clerkAuth.resolveUserFromHeader(authHeader);
-            return { user };
+            const forwarded = req.headers['x-forwarded-for'];
+            const forwardedFirst = Array.isArray(forwarded)
+              ? forwarded[0]
+              : forwarded?.split(',')[0];
+            const ip = forwardedFirst?.trim() || req.ip || null;
+            return { user, ip };
           },
         };
       },
