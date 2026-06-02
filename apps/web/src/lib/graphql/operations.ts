@@ -81,6 +81,51 @@ graphql(/* GraphQL */ `
   }
 `);
 
+graphql(/* GraphQL */ `
+  query MyApiKeys {
+    myApiKeys {
+      provider
+      keyPreview
+      createdAt
+      lastUsedAt
+    }
+  }
+`);
+
+graphql(/* GraphQL */ `
+  mutation SaveApiKey($input: SaveApiKeyInput!) {
+    saveApiKey(input: $input) {
+      provider
+      keyPreview
+      createdAt
+      lastUsedAt
+    }
+  }
+`);
+
+graphql(/* GraphQL */ `
+  mutation DeleteApiKey($provider: TextProvider!) {
+    deleteApiKey(provider: $provider)
+  }
+`);
+
+graphql(/* GraphQL */ `
+  mutation RegenerateCreative($creativeId: ID!) {
+    regenerateCreative(creativeId: $creativeId) {
+      id
+    }
+  }
+`);
+
+graphql(/* GraphQL */ `
+  mutation RetryGeneration($id: ID!) {
+    retryGeneration(id: $id) {
+      id
+      status
+    }
+  }
+`);
+
 export {
   ProjectsDocument,
   ProjectDocument,
@@ -88,4 +133,9 @@ export {
   DeleteProjectDocument,
   GenerateCreativesDocument,
   MyGenerationsDocument,
+  MyApiKeysDocument,
+  SaveApiKeyDocument,
+  DeleteApiKeyDocument,
+  RegenerateCreativeDocument,
+  RetryGenerationDocument,
 } from '@/lib/gql/graphql';

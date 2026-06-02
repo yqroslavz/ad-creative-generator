@@ -20,6 +20,11 @@ type Documents = {
     "\n  mutation DeleteProject($id: ID!) {\n    deleteProject(id: $id)\n  }\n": typeof types.DeleteProjectDocument,
     "\n  mutation GenerateCreatives($input: GenerateCreativesInput!) {\n    generateCreatives(input: $input) {\n      id\n      status\n      n\n      createdAt\n    }\n  }\n": typeof types.GenerateCreativesDocument,
     "\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      imageModeUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n        imageUrl\n      }\n    }\n  }\n": typeof types.MyGenerationsDocument,
+    "\n  query MyApiKeys {\n    myApiKeys {\n      provider\n      keyPreview\n      createdAt\n      lastUsedAt\n    }\n  }\n": typeof types.MyApiKeysDocument,
+    "\n  mutation SaveApiKey($input: SaveApiKeyInput!) {\n    saveApiKey(input: $input) {\n      provider\n      keyPreview\n      createdAt\n      lastUsedAt\n    }\n  }\n": typeof types.SaveApiKeyDocument,
+    "\n  mutation DeleteApiKey($provider: TextProvider!) {\n    deleteApiKey(provider: $provider)\n  }\n": typeof types.DeleteApiKeyDocument,
+    "\n  mutation RegenerateCreative($creativeId: ID!) {\n    regenerateCreative(creativeId: $creativeId) {\n      id\n    }\n  }\n": typeof types.RegenerateCreativeDocument,
+    "\n  mutation RetryGeneration($id: ID!) {\n    retryGeneration(id: $id) {\n      id\n      status\n    }\n  }\n": typeof types.RetryGenerationDocument,
 };
 const documents: Documents = {
     "\n  query Projects {\n    projects {\n      id\n      name\n      adNetwork\n      offerDescription\n      targetAudience\n      landingPageUrl\n      createdAt\n      updatedAt\n    }\n  }\n": types.ProjectsDocument,
@@ -28,6 +33,11 @@ const documents: Documents = {
     "\n  mutation DeleteProject($id: ID!) {\n    deleteProject(id: $id)\n  }\n": types.DeleteProjectDocument,
     "\n  mutation GenerateCreatives($input: GenerateCreativesInput!) {\n    generateCreatives(input: $input) {\n      id\n      status\n      n\n      createdAt\n    }\n  }\n": types.GenerateCreativesDocument,
     "\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      imageModeUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n        imageUrl\n      }\n    }\n  }\n": types.MyGenerationsDocument,
+    "\n  query MyApiKeys {\n    myApiKeys {\n      provider\n      keyPreview\n      createdAt\n      lastUsedAt\n    }\n  }\n": types.MyApiKeysDocument,
+    "\n  mutation SaveApiKey($input: SaveApiKeyInput!) {\n    saveApiKey(input: $input) {\n      provider\n      keyPreview\n      createdAt\n      lastUsedAt\n    }\n  }\n": types.SaveApiKeyDocument,
+    "\n  mutation DeleteApiKey($provider: TextProvider!) {\n    deleteApiKey(provider: $provider)\n  }\n": types.DeleteApiKeyDocument,
+    "\n  mutation RegenerateCreative($creativeId: ID!) {\n    regenerateCreative(creativeId: $creativeId) {\n      id\n    }\n  }\n": types.RegenerateCreativeDocument,
+    "\n  mutation RetryGeneration($id: ID!) {\n    retryGeneration(id: $id) {\n      id\n      status\n    }\n  }\n": types.RetryGenerationDocument,
 };
 
 /**
@@ -68,6 +78,26 @@ export function graphql(source: "\n  mutation GenerateCreatives($input: Generate
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      imageModeUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n        imageUrl\n      }\n    }\n  }\n"): (typeof documents)["\n  query MyGenerations($projectId: ID) {\n    myGenerations(projectId: $projectId) {\n      id\n      projectId\n      status\n      n\n      textProviderUsed\n      imageModeUsed\n      error\n      startedAt\n      finishedAt\n      createdAt\n      creatives {\n        id\n        position\n        headline\n        description\n        cta\n        imageUrl\n      }\n    }\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query MyApiKeys {\n    myApiKeys {\n      provider\n      keyPreview\n      createdAt\n      lastUsedAt\n    }\n  }\n"): (typeof documents)["\n  query MyApiKeys {\n    myApiKeys {\n      provider\n      keyPreview\n      createdAt\n      lastUsedAt\n    }\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation SaveApiKey($input: SaveApiKeyInput!) {\n    saveApiKey(input: $input) {\n      provider\n      keyPreview\n      createdAt\n      lastUsedAt\n    }\n  }\n"): (typeof documents)["\n  mutation SaveApiKey($input: SaveApiKeyInput!) {\n    saveApiKey(input: $input) {\n      provider\n      keyPreview\n      createdAt\n      lastUsedAt\n    }\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation DeleteApiKey($provider: TextProvider!) {\n    deleteApiKey(provider: $provider)\n  }\n"): (typeof documents)["\n  mutation DeleteApiKey($provider: TextProvider!) {\n    deleteApiKey(provider: $provider)\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation RegenerateCreative($creativeId: ID!) {\n    regenerateCreative(creativeId: $creativeId) {\n      id\n    }\n  }\n"): (typeof documents)["\n  mutation RegenerateCreative($creativeId: ID!) {\n    regenerateCreative(creativeId: $creativeId) {\n      id\n    }\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation RetryGeneration($id: ID!) {\n    retryGeneration(id: $id) {\n      id\n      status\n    }\n  }\n"): (typeof documents)["\n  mutation RetryGeneration($id: ID!) {\n    retryGeneration(id: $id) {\n      id\n      status\n    }\n  }\n"];
 
 export function graphql(source: string) {
   return (documents as any)[source] ?? {};

@@ -40,6 +40,7 @@ export class GenerationService {
         userId,
         n: input.n,
         textProviderUsed: input.textProvider ?? null,
+        imageModeUsed: input.imageMode ?? null,
       },
     });
 
@@ -69,5 +70,56 @@ export class GenerationService {
       where: { requestId },
       orderBy: { position: 'asc' },
     });
+  }
+
+  async regenerateCreative(
+    userId: string,
+    creativeId: string,
+  ): Promise<Creative> {
+    const creative = await this.prisma.creative.findUnique({
+      where: { id: creativeId },
+      include: { request: { select: { userId: true, status: true } } },
+    });
+    if (!creative) throw new NotFoundException('Creative not found');
+    if (creative.request.userId !== userId) {
+      throw new NotFoundException('Creative not found');
+    }
+    if (creative.request.status !== 'SUCCEEDED') {
+      throw new BadRequestException(
+        'Can only regenerate images on succeeded generations',
+      );
+    }
+
+    await this.queue.enqueueRegenerateImage(creativeId);
+    return creative;
+  }
+
+  async retryGeneration(
+    userId: string,
+    requestId: string,
+  ): Promise<GenerationRequest> {
+    const request = await this.prisma.generationRequest.findFirst({
+      where: { id: requestId, userId },
+    });
+    if (!request) throw new NotFoundException('Generation not found');
+    if (request.status !== 'FAILED') {
+      throw new BadRequestException('Only FAILED generations can be retried');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.creative.deleteMany({ where: { requestId } });
+      return tx.generationRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'PENDING',
+          error: null,
+          startedAt: null,
+          finishedAt: null,
+        },
+      });
+    });
+
+    await this.queue.enqueueTextRetry(requestId);
+    return updated;
   }
 }

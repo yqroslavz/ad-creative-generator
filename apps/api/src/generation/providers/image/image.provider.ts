@@ -4,6 +4,7 @@ export interface ImageGenInput {
   headline: string;
   cta: string;
   network: AdNetwork;
+  userId?: string;
 }
 
 export interface GeneratedImage {

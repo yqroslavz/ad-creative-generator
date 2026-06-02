@@ -46,6 +46,7 @@ input GenerateCreativesInput {
   projectId: ID!
   n: Int!
   textProvider: TextProvider
+  imageMode: ImageMode
 }
 
 extend type Query {
@@ -55,4 +56,6 @@ extend type Query {
 
 extend type Mutation {
   generateCreatives(input: GenerateCreativesInput!): GenerationRequest!
+  regenerateCreative(creativeId: ID!): Creative!
+  retryGeneration(id: ID!): GenerationRequest!
 }

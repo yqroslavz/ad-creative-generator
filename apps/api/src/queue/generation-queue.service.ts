@@ -3,17 +3,18 @@ import { Queue, type ConnectionOptions } from 'bullmq';
 import {
   GENERATION_QUEUE,
   JOB_GENERATE_TEXT,
-  type GenerateTextJobData,
+  JOB_REGENERATE_IMAGE,
+  type GenerationJobData,
 } from './queue.constants';
 import { buildRedisConnectionOptions } from './redis.connection';
 
 @Injectable()
 export class GenerationQueueService implements OnModuleDestroy {
-  private readonly queue: Queue<GenerateTextJobData>;
+  private readonly queue: Queue<GenerationJobData>;
 
   constructor() {
     const connection: ConnectionOptions = buildRedisConnectionOptions();
-    this.queue = new Queue<GenerateTextJobData>(GENERATION_QUEUE, {
+    this.queue = new Queue<GenerationJobData>(GENERATION_QUEUE, {
       connection,
       defaultJobOptions: {
         attempts: 1,
@@ -28,6 +29,22 @@ export class GenerationQueueService implements OnModuleDestroy {
       JOB_GENERATE_TEXT,
       { requestId },
       { jobId: requestId },
+    );
+  }
+
+  enqueueTextRetry(requestId: string): Promise<unknown> {
+    return this.queue.add(
+      JOB_GENERATE_TEXT,
+      { requestId },
+      { jobId: `${requestId}:retry:${Date.now()}` },
+    );
+  }
+
+  enqueueRegenerateImage(creativeId: string): Promise<unknown> {
+    return this.queue.add(
+      JOB_REGENERATE_IMAGE,
+      { creativeId },
+      { jobId: `regen:${creativeId}:${Date.now()}` },
     );
   }
 
