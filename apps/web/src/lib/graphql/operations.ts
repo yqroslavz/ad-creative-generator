@@ -109,6 +109,23 @@ graphql(/* GraphQL */ `
   }
 `);
 
+graphql(/* GraphQL */ `
+  mutation RegenerateCreative($creativeId: ID!) {
+    regenerateCreative(creativeId: $creativeId) {
+      id
+    }
+  }
+`);
+
+graphql(/* GraphQL */ `
+  mutation RetryGeneration($id: ID!) {
+    retryGeneration(id: $id) {
+      id
+      status
+    }
+  }
+`);
+
 export {
   ProjectsDocument,
   ProjectDocument,
@@ -119,4 +136,6 @@ export {
   MyApiKeysDocument,
   SaveApiKeyDocument,
   DeleteApiKeyDocument,
+  RegenerateCreativeDocument,
+  RetryGenerationDocument,
 } from '@/lib/gql/graphql';

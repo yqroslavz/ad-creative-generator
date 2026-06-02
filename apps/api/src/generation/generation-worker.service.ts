@@ -12,7 +12,10 @@ import { GenerationEventsService } from './events/generation-events.service';
 import {
   GENERATION_QUEUE,
   JOB_GENERATE_TEXT,
+  JOB_REGENERATE_IMAGE,
   type GenerateTextJobData,
+  type GenerationJobData,
+  type RegenerateImageJobData,
 } from '../queue/queue.constants';
 import { buildRedisConnectionOptions } from '../queue/redis.connection';
 import { buildPrompt } from './prompts';
@@ -23,7 +26,7 @@ import type { CreativeText } from './providers/text/ai-text-provider.interface';
 @Injectable()
 export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(GenerationWorkerService.name);
-  private worker: Worker<GenerateTextJobData> | null = null;
+  private worker: Worker<GenerationJobData> | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -33,13 +36,9 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
-    this.worker = new Worker<GenerateTextJobData>(
+    this.worker = new Worker<GenerationJobData>(
       GENERATION_QUEUE,
-      (job) =>
-        workerContextStorage.run(
-          { jobId: String(job.id ?? ''), requestId: job.data.requestId },
-          () => this.process(job),
-        ),
+      (job) => this.dispatch(job),
       {
         connection: buildRedisConnectionOptions(),
         concurrency: 2,
@@ -52,11 +51,34 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  private async process(job: Job<GenerateTextJobData>): Promise<void> {
-    if (job.name !== JOB_GENERATE_TEXT) {
-      throw new Error(`Unknown job name: ${job.name}`);
+  private async dispatch(job: Job<GenerationJobData>): Promise<void> {
+    if (job.name === JOB_GENERATE_TEXT) {
+      const data = job.data as GenerateTextJobData;
+      return workerContextStorage.run(
+        { jobId: String(job.id ?? ''), requestId: data.requestId },
+        () => this.processText(job as Job<GenerateTextJobData>),
+      );
     }
 
+    if (job.name === JOB_REGENERATE_IMAGE) {
+      const data = job.data as RegenerateImageJobData;
+      const creative = await this.prisma.creative.findUnique({
+        where: { id: data.creativeId },
+        select: { requestId: true },
+      });
+      if (!creative) {
+        throw new Error(`Creative ${data.creativeId} not found`);
+      }
+      return workerContextStorage.run(
+        { jobId: String(job.id ?? ''), requestId: creative.requestId },
+        () => this.processRegenerateImage(job as Job<RegenerateImageJobData>),
+      );
+    }
+
+    throw new Error(`Unknown job name: ${job.name}`);
+  }
+
+  private async processText(job: Job<GenerateTextJobData>): Promise<void> {
     const { requestId } = job.data;
 
     const request = await this.prisma.generationRequest.findUnique({
@@ -150,6 +172,50 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
         status: 'FAILED',
         error: message,
       });
+      throw err;
+    }
+  }
+
+  private async processRegenerateImage(
+    job: Job<RegenerateImageJobData>,
+  ): Promise<void> {
+    const { creativeId } = job.data;
+
+    const creative = await this.prisma.creative.findUnique({
+      where: { id: creativeId },
+      include: { request: { include: { project: true } } },
+    });
+    if (!creative) throw new Error(`Creative ${creativeId} not found`);
+
+    const { request } = creative;
+    const useByokDalle = request.imageModeUsed === 'BYOK_DALLE';
+
+    try {
+      const result = await this.imageStrategy.generateAndUpload(
+        request.id,
+        creative.position,
+        {
+          headline: creative.headline,
+          cta: creative.cta,
+          network: request.project.adNetwork,
+          userId: request.userId,
+        },
+        useByokDalle,
+      );
+
+      await this.prisma.creative.update({
+        where: { id: creativeId },
+        data: { imageUrl: result.url, imagePromptUsed: result.promptUsed },
+      });
+
+      this.logger.log(
+        `Regenerated image for creative ${creativeId} (mode=${result.mode})`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `Image regeneration failed for creative ${creativeId}: ${message}`,
+      );
       throw err;
     }
   }

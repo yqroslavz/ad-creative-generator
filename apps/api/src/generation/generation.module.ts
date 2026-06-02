@@ -3,6 +3,7 @@ import { CredentialsModule } from '../credentials/credentials.module';
 import { StorageModule } from '../storage/storage.module';
 import { GenerationEventsService } from './events/generation-events.service';
 import { GenerationSseController } from './events/generation-sse.controller';
+import { GenerationExportController } from './export/generation-export.controller';
 import { GenerationWorkerService } from './generation-worker.service';
 import { GenerationResolver } from './generation.resolver';
 import { GenerationService } from './generation.service';
@@ -16,7 +17,7 @@ import { TextProviderFactory } from './providers/text/text-provider.factory';
 
 @Module({
   imports: [StorageModule, CredentialsModule],
-  controllers: [GenerationSseController],
+  controllers: [GenerationSseController, GenerationExportController],
   providers: [
     GenerationWorkerService,
     GenerationService,

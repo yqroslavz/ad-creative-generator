@@ -45,6 +45,23 @@ export class GenerationResolver {
     return this.generation.create(user.userId, input);
   }
 
+  @Mutation('regenerateCreative')
+  regenerateCreative(
+    @CurrentUser() user: AuthUser,
+    @Args('creativeId') creativeId: string,
+  ): Promise<Creative> {
+    return this.generation.regenerateCreative(user.userId, creativeId);
+  }
+
+  @Mutation('retryGeneration')
+  @UseGuards(GenerationThrottleGuard)
+  retryGeneration(
+    @CurrentUser() user: AuthUser,
+    @Args('id') id: string,
+  ): Promise<GenerationRequest> {
+    return this.generation.retryGeneration(user.userId, id);
+  }
+
   @ResolveField('creatives')
   creatives(@Parent() request: GenerationRequest): Promise<Creative[]> {
     return this.generation.creativesFor(request.id);

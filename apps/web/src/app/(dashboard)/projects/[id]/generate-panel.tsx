@@ -1,15 +1,21 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client/react';
 import {
   GenerateCreativesDocument,
+  MyApiKeysDocument,
   MyGenerationsDocument,
+  RegenerateCreativeDocument,
+  RetryGenerationDocument,
 } from '@/lib/graphql/operations';
+import type { ImageMode, TextProvider } from '@/lib/gql/graphql';
 import { useGenerationStream } from '@/lib/use-generation-stream';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 type Status = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
-type ImageMode = 'POLLINATIONS' | 'BYOK_DALLE' | 'SVG_FALLBACK';
 
 const TERMINAL: ReadonlySet<Status> = new Set(['SUCCEEDED', 'FAILED']);
 
@@ -26,14 +32,31 @@ const imageModeLabel: Record<ImageMode, string> = {
   SVG_FALLBACK: 'Preview',
 };
 
+const TEXT_PROVIDERS: { value: TextProvider; label: string; byok: boolean }[] =
+  [
+    { value: 'GEMINI', label: 'Gemini ($0 mode)', byok: false },
+    { value: 'ANTHROPIC', label: 'Anthropic (BYOK)', byok: true },
+    { value: 'OPENAI', label: 'OpenAI (BYOK)', byok: true },
+  ];
+
 export function GeneratePanel({ projectId }: { projectId: string }) {
   const [n, setN] = useState(5);
+  const [textProvider, setTextProvider] = useState<TextProvider>('GEMINI');
+  const [premiumImage, setPremiumImage] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const { getToken } = useAuth();
   const { data, refetch } = useQuery(MyGenerationsDocument, {
     variables: { projectId },
     fetchPolicy: 'cache-and-network',
   });
+  const { data: keysData } = useQuery(MyApiKeysDocument);
+
+  const savedProviders = useMemo(
+    () => new Set(keysData?.myApiKeys.map((k) => k.provider) ?? []),
+    [keysData],
+  );
+  const hasOpenAIKey = savedProviders.has('OPENAI');
 
   const activeRequestId = useMemo(
     () =>
@@ -59,44 +82,135 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
     },
   );
 
+  const [regenerate, { loading: regenLoading }] = useMutation(
+    RegenerateCreativeDocument,
+    {
+      onCompleted: () => {
+        setErrorMsg(null);
+        void refetch();
+      },
+      onError: (err) => setErrorMsg(err.message),
+    },
+  );
+
+  const [retry, { loading: retryLoading }] = useMutation(
+    RetryGenerationDocument,
+    {
+      onCompleted: () => {
+        setErrorMsg(null);
+        void refetch();
+      },
+      onError: (err) => setErrorMsg(err.message),
+    },
+  );
+
   const handleGenerate = () => {
     setErrorMsg(null);
-    void generate({ variables: { input: { projectId, n } } });
+    const imageMode: ImageMode | null =
+      premiumImage && hasOpenAIKey ? 'BYOK_DALLE' : null;
+    void generate({
+      variables: {
+        input: { projectId, n, textProvider, imageMode },
+      },
+    });
   };
+
+  const handleDownloadCsv = useCallback(
+    async (id: string) => {
+      if (!API_URL) return;
+      const token = await getToken({ template: 'graphql' });
+      if (!token) return;
+      const url = `${API_URL}/export/generation/${id}.csv?token=${encodeURIComponent(token)}`;
+      window.open(url, '_blank');
+    },
+    [getToken],
+  );
+
+  const selectedProviderInfo = TEXT_PROVIDERS.find(
+    (p) => p.value === textProvider,
+  );
+  const byokMissing =
+    selectedProviderInfo?.byok && !savedProviders.has(textProvider);
 
   return (
     <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Generate creatives</h2>
           <p className="text-sm text-gray-500">
-            Pick how many variants you want. Gemini ($0 mode) writes the copy.
+            Choose a provider and how many variants you want.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="n" className="text-sm text-gray-700">
-            Variants
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label htmlFor="provider" className="text-sm text-gray-700">
+              Text
+            </label>
+            <select
+              id="provider"
+              value={textProvider}
+              onChange={(e) => setTextProvider(e.target.value as TextProvider)}
+              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+            >
+              {TEXT_PROVIDERS.map((p) => (
+                <option
+                  key={p.value}
+                  value={p.value}
+                  disabled={p.byok && !savedProviders.has(p.value)}
+                >
+                  {p.label}
+                  {p.byok && !savedProviders.has(p.value) ? ' — add key' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={premiumImage}
+              onChange={(e) => setPremiumImage(e.target.checked)}
+              disabled={!hasOpenAIKey}
+            />
+            Premium image (DALL-E)
+            {!hasOpenAIKey && (
+              <span className="text-xs text-gray-400">add OpenAI key</span>
+            )}
           </label>
-          <input
-            id="n"
-            type="number"
-            min={1}
-            max={10}
-            value={n}
-            onChange={(e) =>
-              setN(Math.max(1, Math.min(10, Number(e.target.value) || 1)))
-            }
-            className="w-16 rounded-md border border-gray-300 px-2 py-1 text-sm"
-          />
+
+          <div className="flex items-center gap-2">
+            <label htmlFor="n" className="text-sm text-gray-700">
+              Variants
+            </label>
+            <input
+              id="n"
+              type="number"
+              min={1}
+              max={10}
+              value={n}
+              onChange={(e) =>
+                setN(Math.max(1, Math.min(10, Number(e.target.value) || 1)))
+              }
+              className="w-16 rounded-md border border-gray-300 px-2 py-1 text-sm"
+            />
+          </div>
+
           <button
             onClick={handleGenerate}
-            disabled={submitting}
+            disabled={submitting || byokMissing}
             className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
           >
             {submitting ? 'Queuing…' : `Generate ${n}`}
           </button>
         </div>
       </div>
+
+      {byokMissing && (
+        <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Add a {textProvider} key in <code>/settings/api-keys</code> to use
+          this provider.
+        </p>
+      )}
 
       {errorMsg && (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -113,8 +227,8 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
             key={g.id}
             className="rounded-lg border border-gray-200 p-4"
           >
-            <header className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <header className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                     statusStyle[g.status as Status]
@@ -131,9 +245,30 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
                   </span>
                 )}
               </div>
-              <time className="text-xs text-gray-500">
-                {new Date(g.createdAt).toLocaleString()}
-              </time>
+              <div className="flex items-center gap-3">
+                {g.status === 'SUCCEEDED' && g.creatives.length > 0 && (
+                  <button
+                    onClick={() => void handleDownloadCsv(g.id)}
+                    className="text-xs font-medium text-blue-600 hover:underline"
+                  >
+                    Download CSV
+                  </button>
+                )}
+                {g.status === 'FAILED' && (
+                  <button
+                    onClick={() =>
+                      void retry({ variables: { id: g.id } })
+                    }
+                    disabled={retryLoading}
+                    className="text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
+                  >
+                    Retry
+                  </button>
+                )}
+                <time className="text-xs text-gray-500">
+                  {new Date(g.createdAt).toLocaleString()}
+                </time>
+              </div>
             </header>
 
             {g.error && (
@@ -167,6 +302,19 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
                         <span className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
                           {imageModeLabel[g.imageModeUsed as ImageMode]}
                         </span>
+                      )}
+                      {g.status === 'SUCCEEDED' && (
+                        <button
+                          onClick={() =>
+                            void regenerate({
+                              variables: { creativeId: c.id },
+                            })
+                          }
+                          disabled={regenLoading}
+                          className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-medium text-gray-800 shadow hover:bg-white disabled:opacity-50"
+                        >
+                          Regenerate image
+                        </button>
                       )}
                     </div>
                     <div className="p-3">
