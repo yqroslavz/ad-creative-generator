@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client/react';
 import {
   GenerateCreativesDocument,
   MyGenerationsDocument,
 } from '@/lib/graphql/operations';
+import { useGenerationStream } from '@/lib/use-generation-stream';
 
 type Status = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
 type ImageMode = 'POLLINATIONS' | 'BYOK_DALLE' | 'SVG_FALLBACK';
@@ -29,31 +30,29 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
   const [n, setN] = useState(5);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { data, refetch, startPolling, stopPolling } = useQuery(
-    MyGenerationsDocument,
-    {
-      variables: { projectId },
-      fetchPolicy: 'cache-and-network',
-    },
-  );
+  const { data, refetch } = useQuery(MyGenerationsDocument, {
+    variables: { projectId },
+    fetchPolicy: 'cache-and-network',
+  });
 
-  const hasActive = useMemo(
+  const activeRequestId = useMemo(
     () =>
-      data?.myGenerations.some(
-        (g) => !TERMINAL.has(g.status as Status),
-      ) ?? false,
+      data?.myGenerations.find((g) => !TERMINAL.has(g.status as Status))?.id ??
+      null,
     [data],
   );
 
-  if (hasActive) startPolling(3000);
-  else stopPolling();
+  const handleTerminal = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  useGenerationStream(activeRequestId, handleTerminal);
 
   const [generate, { loading: submitting }] = useMutation(
     GenerateCreativesDocument,
     {
       onCompleted: () => {
         setErrorMsg(null);
-        startPolling(3000);
         void refetch();
       },
       onError: (err) => setErrorMsg(err.message),

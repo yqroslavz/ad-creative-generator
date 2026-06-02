@@ -8,6 +8,7 @@ import { Worker, type Job } from 'bullmq';
 import type { ImageMode } from '@prisma/client';
 import { workerContextStorage } from '../credentials/worker-context';
 import { PrismaService } from '../prisma/prisma.service';
+import { GenerationEventsService } from './events/generation-events.service';
 import {
   GENERATION_QUEUE,
   JOB_GENERATE_TEXT,
@@ -28,6 +29,7 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly textProviders: TextProviderFactory,
     private readonly imageStrategy: ImageStrategyService,
+    private readonly events: GenerationEventsService,
   ) {}
 
   onModuleInit(): void {
@@ -66,6 +68,11 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
     await this.prisma.generationRequest.update({
       where: { id: requestId },
       data: { status: 'RUNNING', startedAt: new Date() },
+    });
+    await this.events.publish(requestId, {
+      type: 'STATUS',
+      status: 'RUNNING',
+      n: request.n,
     });
 
     try {
@@ -125,11 +132,23 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(
         `Job ${job.id} succeeded: ${texts.length} creatives, text=${provider.id}${wasBYOK ? ' (BYOK)' : ''}, image=${successfulMode ?? 'NONE'}`,
       );
+      await this.events.publish(requestId, {
+        type: 'STATUS',
+        status: 'SUCCEEDED',
+        n: texts.length,
+        textProviderUsed: provider.id,
+        imageModeUsed: successfulMode,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await this.prisma.generationRequest.update({
         where: { id: requestId },
         data: { status: 'FAILED', error: message, finishedAt: new Date() },
+      });
+      await this.events.publish(requestId, {
+        type: 'STATUS',
+        status: 'FAILED',
+        error: message,
       });
       throw err;
     }
