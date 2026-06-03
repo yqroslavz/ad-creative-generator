@@ -133,10 +133,10 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
     selectedProviderInfo?.byok && !savedProviders.has(textProvider);
 
   return (
-    <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-6">
+    <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold">Generate creatives</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Generate creatives</h2>
           <p className="text-sm text-gray-500">
             Choose a provider and how many variants you want.
           </p>
@@ -150,7 +150,7 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
               id="provider"
               value={textProvider}
               onChange={(e) => setTextProvider(e.target.value as TextProvider)}
-              className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+              className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
             >
               {TEXT_PROVIDERS.map((p) => (
                 <option
@@ -191,14 +191,14 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
               onChange={(e) =>
                 setN(Math.max(1, Math.min(10, Number(e.target.value) || 1)))
               }
-              className="w-16 rounded-md border border-gray-300 px-2 py-1 text-sm"
+              className="w-16 rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
             />
           </div>
 
           <button
             onClick={handleGenerate}
             disabled={submitting || byokMissing}
-            className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+            className="rounded-full bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
           >
             {submitting ? 'Queuing…' : `Generate ${n}`}
           </button>
@@ -249,7 +249,7 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
                 {g.status === 'SUCCEEDED' && g.creatives.length > 0 && (
                   <button
                     onClick={() => void handleDownloadCsv(g.id)}
-                    className="text-xs font-medium text-blue-600 hover:underline"
+                    className="text-xs font-medium text-violet-600 hover:underline"
                   >
                     Download CSV
                   </button>
@@ -260,7 +260,7 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
                       void retry({ variables: { id: g.id } })
                     }
                     disabled={retryLoading}
-                    className="text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
+                    className="text-xs font-medium text-violet-600 hover:underline disabled:opacity-50"
                   >
                     Retry
                   </button>

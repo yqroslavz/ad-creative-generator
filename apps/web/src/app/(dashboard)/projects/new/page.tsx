@@ -8,6 +8,9 @@ import { CreateProjectDocument } from '@/lib/graphql/operations';
 const AD_NETWORKS = ['TABOOLA', 'OUTBRAIN', 'MGID', 'TIKTOK', 'REVCONTENT', 'ADSKEEPER'] as const;
 type AdNetwork = (typeof AD_NETWORKS)[number];
 
+const inputCls =
+  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20';
+
 export default function NewProjectPage() {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -38,14 +41,24 @@ export default function NewProjectPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">New project</h1>
-      <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-gray-200 bg-white p-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">New project</h1>
+        <p className="mt-0.5 text-sm text-gray-500">
+          Set up your campaign details to start generating creatives
+        </p>
+      </div>
+
+      <form
+        onSubmit={onSubmit}
+        className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+      >
         <Field label="Name">
           <input
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none"
+            placeholder="e.g. Summer Sale Campaign"
+            className={inputCls}
           />
         </Field>
 
@@ -55,7 +68,8 @@ export default function NewProjectPage() {
             value={offerDescription}
             onChange={(e) => setOfferDescription(e.target.value)}
             rows={3}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none"
+            placeholder="What are you promoting? Include key benefits and value proposition."
+            className={inputCls}
           />
         </Field>
 
@@ -65,7 +79,8 @@ export default function NewProjectPage() {
             value={targetAudience}
             onChange={(e) => setTargetAudience(e.target.value)}
             rows={2}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none"
+            placeholder="e.g. Home owners aged 35-55 interested in home improvement"
+            className={inputCls}
           />
         </Field>
 
@@ -73,7 +88,7 @@ export default function NewProjectPage() {
           <select
             value={adNetwork}
             onChange={(e) => setAdNetwork(e.target.value as AdNetwork)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none"
+            className={inputCls}
           >
             {AD_NETWORKS.map((n) => (
               <option key={n} value={n}>
@@ -89,24 +104,28 @@ export default function NewProjectPage() {
             value={landingPageUrl}
             onChange={(e) => setLandingPageUrl(e.target.value)}
             placeholder="https://example.com"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none"
+            className={inputCls}
           />
         </Field>
 
-        {error && <p className="text-sm text-red-600">{error.message}</p>}
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error.message}
+          </div>
+        )}
 
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
           <button
             type="button"
             onClick={() => router.push('/dashboard')}
-            className="rounded-full border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+            className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+            className="rounded-full bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
           >
             {loading ? 'Creating…' : 'Create project'}
           </button>
