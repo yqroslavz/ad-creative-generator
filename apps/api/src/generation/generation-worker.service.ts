@@ -112,9 +112,12 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
 
       const useByokDalle = request.imageModeUsed === 'BYOK_DALLE';
 
-      const imageResults = await Promise.all(
-        texts.map((text, idx) =>
-          this.generateImageSafely(
+      const imageResults: Awaited<
+        ReturnType<typeof this.generateImageSafely>
+      >[] = [];
+      for (const [idx, text] of texts.entries()) {
+        imageResults.push(
+          await this.generateImageSafely(
             requestId,
             idx,
             text,
@@ -122,8 +125,8 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
             request.userId,
             useByokDalle,
           ),
-        ),
-      );
+        );
+      }
 
       const successfulMode = imageResults.find((r) => r !== null)?.mode ?? null;
 

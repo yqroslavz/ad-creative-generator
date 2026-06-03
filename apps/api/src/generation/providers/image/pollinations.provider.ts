@@ -19,15 +19,20 @@ export class PollinationsProvider implements ImageProvider {
   async generate(input: ImageGenInput): Promise<GeneratedImage> {
     const prompt = buildImagePrompt(input);
     const token = process.env.POLLINATIONS_TOKEN;
+    const referrer = process.env.POLLINATIONS_REFERRER;
     const url =
       `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
       `?width=${IMAGE_WIDTH}&height=${IMAGE_HEIGHT}&nologo=true&safe=true` +
-      (token ? `&token=${encodeURIComponent(token)}` : '');
+      (referrer ? `&referrer=${encodeURIComponent(referrer)}` : '');
+
+    const headers: Record<string, string> = token
+      ? { Authorization: `Bearer ${token}` }
+      : {};
 
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       try {
-        return await this.fetchImage(url, prompt);
+        return await this.fetchImage(url, headers, prompt);
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
         this.logger.warn(
@@ -41,6 +46,7 @@ export class PollinationsProvider implements ImageProvider {
 
   private async fetchImage(
     url: string,
+    headers: Record<string, string>,
     prompt: string,
   ): Promise<GeneratedImage> {
     const controller = new AbortController();
@@ -49,7 +55,7 @@ export class PollinationsProvider implements ImageProvider {
       POLLINATIONS_TIMEOUT_MS,
     );
     try {
-      const res = await fetch(url, { signal: controller.signal });
+      const res = await fetch(url, { headers, signal: controller.signal });
       if (!res.ok) {
         throw new Error(`Pollinations HTTP ${res.status}`);
       }
