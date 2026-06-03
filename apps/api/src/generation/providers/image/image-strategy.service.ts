@@ -7,7 +7,6 @@ import type {
   ImageProvider,
 } from './image.provider';
 import { DalleProvider } from './dalle.provider';
-import { PollinationsProvider } from './pollinations.provider';
 import { SvgFallbackProvider } from './svg-fallback.provider';
 
 export interface ImageResult {
@@ -22,7 +21,6 @@ export class ImageStrategyService {
 
   constructor(
     private readonly s3: S3Service,
-    private readonly pollinations: PollinationsProvider,
     private readonly svgFallback: SvgFallbackProvider,
     private readonly dalle: DalleProvider,
   ) {}
@@ -34,8 +32,8 @@ export class ImageStrategyService {
     useByokDalle: boolean,
   ): Promise<ImageResult> {
     const chain: ImageProvider[] = useByokDalle
-      ? [this.dalle, this.pollinations, this.svgFallback]
-      : [this.pollinations, this.svgFallback];
+      ? [this.dalle, this.svgFallback]
+      : [this.svgFallback];
 
     let image: GeneratedImage | null = null;
     let usedProvider: ImageProvider | null = null;

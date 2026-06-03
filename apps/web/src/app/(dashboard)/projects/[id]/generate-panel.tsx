@@ -29,7 +29,7 @@ const statusStyle: Record<Status, string> = {
 const imageModeLabel: Record<ImageMode, string> = {
   POLLINATIONS: 'AI image',
   BYOK_DALLE: 'Premium AI',
-  SVG_FALLBACK: 'Preview',
+  SVG_FALLBACK: 'Designed',
 };
 
 const TEXT_PROVIDERS: { value: TextProvider; label: string; byok: boolean }[] =

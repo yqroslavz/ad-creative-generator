@@ -199,6 +199,7 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
         creative.position,
         {
           headline: creative.headline,
+          description: creative.description,
           cta: creative.cta,
           network: request.project.adNetwork,
           userId: request.userId,
@@ -235,7 +236,13 @@ export class GenerationWorkerService implements OnModuleInit, OnModuleDestroy {
       return await this.imageStrategy.generateAndUpload(
         requestId,
         idx,
-        { headline: text.headline, cta: text.cta, network, userId },
+        {
+          headline: text.headline,
+          description: text.description,
+          cta: text.cta,
+          network,
+          userId,
+        },
         useByokDalle,
       );
     } catch (err) {

@@ -2,6 +2,7 @@ import type { AdNetwork, ImageMode } from '@prisma/client';
 
 export interface ImageGenInput {
   headline: string;
+  description?: string;
   cta: string;
   network: AdNetwork;
   userId?: string;

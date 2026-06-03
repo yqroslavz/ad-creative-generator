@@ -12,7 +12,7 @@ const FEATURES = [
   {
     icon: '💸',
     title: '$0 default mode',
-    body: 'Gemini text + Pollinations images out of the box. No card required. Bring your Anthropic / OpenAI / DALL-E key only if you want premium output.',
+    body: 'Gemini copy plus network-branded designed creatives out of the box — no card, no setup. Bring your own Anthropic / OpenAI / DALL-E key only when you want premium AI photos.',
   },
   {
     icon: '⚡',

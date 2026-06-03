@@ -34,9 +34,9 @@ Every layer below either closes a recurring gap in the author's active job pipel
 | Auth | Clerk | Free tier (10k MAU) | No |
 | AI text (default) | Google Gemini 2.0 Flash via system key | 1500 req/day | No |
 | AI text (BYOK) | Anthropic / OpenAI / Gemini — user-provided, encrypted at rest | — | No |
-| AI image (default) | Pollinations.ai HTTP API | Free, no key | No |
+| AI image (default) | Network-branded designed creative via satori + resvg | Free, no key, no external call | No |
 | AI image (BYOK premium) | OpenAI DALL-E 3 — user-provided | — | No |
-| AI image (fallback) | SVG generation via `@vercel/og` / satori | Free | No |
+| ~~AI image~~ Pollinations.ai HTTP API | **Removed 2026-06-03** — provider moved to paid pollen credits, no reliable free tier. See Decisions log. | — | — |
 | Real-time | Server-Sent Events for job progress | — | — |
 | Tests | Jest (unit) + Playwright (E2E) | — | — |
 | CI | GitHub Actions | 2000 min/mo | No |
@@ -534,8 +534,8 @@ The whole point of this stack is $0 cost. Discipline rules:
 | Upstash Redis over self-hosted | Card-free, BullMQ compatible | Per-command quota; mitigated by hard rate limits |
 | Gemini 2.0 Flash as demo default | Free 1500/day tier covers realistic portfolio traffic | Lower quality ceiling than Claude Sonnet |
 | BYOK for Anthropic / OpenAI / Gemini | Users who want better quality pay their own way; zero cost to author | UX cost: settings page + onboarding for BYOK; mitigated by working demo mode |
-| Pollinations.ai for default images | Free, no key, real AI images in demo | Reliability risk; mitigated by SVG fallback |
-| SVG fallback via @vercel/og | Reliable last resort; brand-aware visual | Not real AI image; UI badges this clearly |
+| ~~Pollinations.ai for default images~~ **Removed 2026-06-03** | Provider migrated to paid "pollen" credits (x402 micropayments); anonymous access returns HTTP 402 "queue full per IP" from shared cloud egress, and even a free Seed token only grants a tiny daily pollen budget on a freemium model — violates the binding `$0, no card, works for anonymous visitors` rule. Verified live: no closed provider offers a reliable free anonymous image API in 2026 (Google's shut down Nov 2025, OpenAI never free, Cloudflare/HF require accounts + keys). | Default $0 path is now the designed SVG creative; real AI photos are BYOK-only (DALL·E). |
+| Designed SVG creative as the $0 default (satori + resvg) | Zero external dependency → cannot rug-pull or rate-limit; renders a polished network-branded native-ad mockup (sponsored chip, headline, description, CTA) entirely in-process | Not a photographic AI image; UI badges it "Designed". Premium photos require a BYOK key. |
 | AES-256-GCM symmetric encryption | Industry standard for this class of secret storage | Master key compromise = all keys compromised; acceptable for portfolio-scale risk |
 | Schema-first GraphQL | Generated types shared cleanly across apps | Slightly more verbose than code-first |
 | Apollo Server v4, not v3 | v4 is supported with `@nestjs/apollo` 12+ | Many old tutorials show v3; ignore them |
@@ -548,7 +548,8 @@ The whole point of this stack is $0 cost. Discipline rules:
 - **Supabase Postgres + Prisma:** use the pooled connection string with `?pgbouncer=true&connection_limit=1` to avoid the pool exhaustion class of bug that hit TrackBoost.
 - **Supabase Storage S3 endpoint:** use service-role key for server-side writes; bucket policy must allow public read for the generated-images bucket, or use signed URLs.
 - **BullMQ + Upstash:** use the standard Redis connection (not REST API). Set `maxRetriesPerRequest: null` on the connection — required by BullMQ.
-- **Pollinations.ai:** unofficial service, no SLA. Always use a timeout (10s recommended) and fall back to SVG. URL-encode the prompt properly — special chars break it.
+- **Pollinations.ai (REMOVED 2026-06-03):** went paid (pollen credits / x402). Anonymous = HTTP 402 "queue full per IP", free Seed token = tiny daily budget on a freemium model. Do not reintroduce as the $0 default — it breaks the no-card guarantee. The designed SVG creative is now the default; DALL·E (BYOK) is the only real-photo path.
+- **satori image fallback is CPU/memory-bound, not I/O-bound:** unlike the old Pollinations fetch, rendering N 1024px PNGs in parallel can spike Render's 512MB. Generate creatives' images sequentially in the worker (not `Promise.all`).
 - **Render free tier sleep:** service sleeps after 15min of inactivity; first request after sleep takes 30-60s. UptimeRobot ping `/health` every 5 minutes keeps it warm.
 - **Vercel serverless functions** have a 10s timeout on Hobby. All long-running work is on Render (NestJS), never on Vercel API routes.
 - **Supabase Storage CORS:** must add the Vercel domain explicitly via Supabase dashboard, or images won't load in browser.
