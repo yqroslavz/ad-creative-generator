@@ -33,6 +33,7 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      'no-console': 'error',
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
