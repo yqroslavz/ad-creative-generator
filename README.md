@@ -4,7 +4,6 @@ Full-stack AI tool that generates ad creatives (headline, description, CTA, imag
 
 - **Live demo:** https://ad-creative-generator-web.vercel.app
 - **API:** https://ad-creative-generator-kqpw.onrender.com
-- **Spec:** [`PROJECT_SPEC.md`](./PROJECT_SPEC.md)
 
 Default mode is free (Gemini text + network-branded designed creatives, no card and no setup required). Bring your own Anthropic / OpenAI / DALL-E key from the settings page if you want premium AI photos.
 
@@ -82,8 +81,7 @@ ad-creative-generator/
 │       └── src/   # 5 Jest specs: BYOK service, projects resolver, prompts (snapshot), crypto, logger redaction
 ├── .github/workflows/ci.yml
 ├── docker-compose.yml   # local postgres + redis
-├── pnpm-workspace.yaml
-└── PROJECT_SPEC.md
+└── pnpm-workspace.yaml
 ```
 
 ## Local development
