@@ -6,12 +6,12 @@ Full-stack AI tool that generates ad creatives (headline, description, CTA, imag
 - **API:** https://ad-creative-generator-kqpw.onrender.com
 - **Spec:** [`PROJECT_SPEC.md`](./PROJECT_SPEC.md)
 
-Default mode is free (Gemini text + Pollinations images, no card required). Bring your own Anthropic / OpenAI / DALL-E key from the settings page if you want premium quality.
+Default mode is free (Gemini text + network-branded designed creatives, no card and no setup required). Bring your own Anthropic / OpenAI / DALL-E key from the settings page if you want premium AI photos.
 
 ## Features
 
 - **6 ad networks** — network-aware prompts produce copy that fits each platform’s headline length, CTA tone, and description style.
-- **$0 default mode** — Gemini 2.5 Flash + Pollinations.ai. SVG fallback (`satori` + `resvg`) when image providers rate-limit you.
+- **$0 default mode** — Gemini 2.5 Flash copy plus a network-branded designed creative rendered in-process (`satori` + `resvg`), so the demo works for anonymous visitors with zero external dependency or cost.
 - **BYOK premium** — paste your own Anthropic / OpenAI key (AES-256-GCM at rest), opt into DALL-E 3 per request.
 - **Real-time progress** — SSE stream from BullMQ worker → React, status badges flip from queued → running → done.
 - **CSV export** — every batch downloads as a CSV ready to paste into the ad-network UI.
@@ -35,7 +35,7 @@ Default mode is free (Gemini text + Pollinations images, no card required). Brin
                                                            │
                                               ┌────────────▼─────────────┐
                                               │  Worker (in-process)      │
-                                              │  Gemini · Pollinations    │
+                                              │  Gemini · designed SVG    │
                                               │  Anthropic · OpenAI · DALL-E │
                                               └───────────────────────────┘
 ```
@@ -53,7 +53,7 @@ The worker runs **in-process** with the API on Render free tier (no separate wor
 | Storage | Supabase Storage via `@aws-sdk/client-s3` (`forcePathStyle: true`) |
 | Auth | Clerk |
 | AI text | Gemini 2.5 Flash (default) · Anthropic Claude · OpenAI GPT (BYOK) |
-| AI image | Pollinations.ai (default) · DALL-E 3 (BYOK) · SVG fallback (`satori`) |
+| AI image | Designed SVG creative via `satori` + `resvg` (default, $0) · DALL-E 3 (BYOK premium) |
 | Real-time | SSE over Redis pub/sub |
 | Tests | Jest 30 · Playwright |
 | CI | GitHub Actions |
