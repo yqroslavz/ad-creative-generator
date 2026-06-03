@@ -1,24 +1,48 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type {
   GeneratedImage,
   ImageGenInput,
   ImageProvider,
 } from './image.provider';
 
-const POLLINATIONS_TIMEOUT_MS = 10_000;
+const POLLINATIONS_TIMEOUT_MS = 30_000;
+const MAX_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 1_500;
 const IMAGE_WIDTH = 1024;
 const IMAGE_HEIGHT = 1024;
 
 @Injectable()
 export class PollinationsProvider implements ImageProvider {
   readonly id = 'POLLINATIONS' as const;
+  private readonly logger = new Logger(PollinationsProvider.name);
 
   async generate(input: ImageGenInput): Promise<GeneratedImage> {
     const prompt = buildImagePrompt(input);
+    const token = process.env.POLLINATIONS_TOKEN;
     const url =
       `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
-      `?width=${IMAGE_WIDTH}&height=${IMAGE_HEIGHT}&nologo=true&safe=true`;
+      `?width=${IMAGE_WIDTH}&height=${IMAGE_HEIGHT}&nologo=true&safe=true` +
+      (token ? `&token=${encodeURIComponent(token)}` : '');
 
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+      try {
+        return await this.fetchImage(url, prompt);
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        this.logger.warn(
+          `Pollinations attempt ${attempt}/${MAX_ATTEMPTS} failed: ${lastError.message}`,
+        );
+        if (attempt < MAX_ATTEMPTS) await delay(RETRY_DELAY_MS);
+      }
+    }
+    throw lastError ?? new Error('Pollinations failed');
+  }
+
+  private async fetchImage(
+    url: string,
+    prompt: string,
+  ): Promise<GeneratedImage> {
     const controller = new AbortController();
     const timeout = setTimeout(
       () => controller.abort(),
@@ -45,6 +69,10 @@ export class PollinationsProvider implements ImageProvider {
       clearTimeout(timeout);
     }
   }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function buildImagePrompt(input: ImageGenInput): string {

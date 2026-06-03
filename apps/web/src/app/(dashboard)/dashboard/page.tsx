@@ -5,7 +5,9 @@ import { useMutation, useQuery } from '@apollo/client/react';
 import { ProjectsDocument, DeleteProjectDocument } from '@/lib/graphql/operations';
 
 export default function DashboardPage() {
-  const { data, loading, error, refetch } = useQuery(ProjectsDocument);
+  const { data, loading, error, refetch } = useQuery(ProjectsDocument, {
+    fetchPolicy: 'cache-and-network',
+  });
   const [deleteProject, { loading: deleting }] = useMutation(DeleteProjectDocument, {
     onCompleted: () => refetch(),
   });
@@ -30,7 +32,7 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {loading && (
+      {loading && !data && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-40 animate-pulse rounded-xl bg-gray-200" />

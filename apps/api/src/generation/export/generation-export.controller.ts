@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Get,
   Header,
+  Headers,
   NotFoundException,
   Param,
   Query,
@@ -24,11 +25,15 @@ export class GenerationExportController {
   @Header('Content-Type', 'text/csv; charset=utf-8')
   async exportCsv(
     @Param('id') id: string,
+    @Headers('authorization') authorization: string | undefined,
     @Query('token') token: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
-    if (!token) throw new UnauthorizedException('token query param required');
-    const user = await this.auth.resolveUserFromHeader(`Bearer ${token}`);
+    const authHeader = authorization ?? (token ? `Bearer ${token}` : undefined);
+    if (!authHeader) {
+      throw new UnauthorizedException('Authorization header required');
+    }
+    const user = await this.auth.resolveUserFromHeader(authHeader);
     if (!user) throw new UnauthorizedException('Invalid token');
 
     const request = await this.prisma.generationRequest.findUnique({

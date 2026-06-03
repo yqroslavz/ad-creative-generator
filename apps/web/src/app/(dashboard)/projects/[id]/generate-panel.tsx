@@ -44,6 +44,7 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
   const [textProvider, setTextProvider] = useState<TextProvider>('GEMINI');
   const [premiumImage, setPremiumImage] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const { getToken } = useAuth();
   const { data, refetch } = useQuery(MyGenerationsDocument, {
@@ -118,10 +119,35 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
   const handleDownloadCsv = useCallback(
     async (id: string) => {
       if (!API_URL) return;
-      const token = await getToken({ template: 'graphql' });
-      if (!token) return;
-      const url = `${API_URL}/export/generation/${id}.csv?token=${encodeURIComponent(token)}`;
-      window.open(url, '_blank');
+      setErrorMsg(null);
+      setDownloadingId(id);
+      try {
+        const token = await getToken({ template: 'graphql' });
+        if (!token) throw new Error('Not authenticated');
+        const res = await fetch(`${API_URL}/export/generation/${id}.csv`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          throw new Error(`Export failed (HTTP ${res.status})`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `generation-${id}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        setErrorMsg(
+          err instanceof Error
+            ? `Could not download CSV: ${err.message}`
+            : 'Could not download CSV',
+        );
+      } finally {
+        setDownloadingId(null);
+      }
     },
     [getToken],
   );
@@ -174,7 +200,7 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
             />
             Premium image (DALL-E)
             {!hasOpenAIKey && (
-              <span className="text-xs text-gray-400">add OpenAI key</span>
+              <span className="text-xs text-gray-500">add OpenAI key</span>
             )}
           </label>
 
@@ -249,9 +275,10 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
                 {g.status === 'SUCCEEDED' && g.creatives.length > 0 && (
                   <button
                     onClick={() => void handleDownloadCsv(g.id)}
-                    className="text-xs font-medium text-violet-600 hover:underline"
+                    disabled={downloadingId === g.id}
+                    className="text-xs font-medium text-violet-600 hover:underline disabled:opacity-50"
                   >
-                    Download CSV
+                    {downloadingId === g.id ? 'Downloading…' : 'Download CSV'}
                   </button>
                 )}
                 {g.status === 'FAILED' && (
@@ -294,7 +321,7 @@ export function GeneratePanel({ projectId }: { projectId: string }) {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
+                        <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">
                           {g.status === 'RUNNING' ? 'Generating…' : 'No image'}
                         </div>
                       )}
