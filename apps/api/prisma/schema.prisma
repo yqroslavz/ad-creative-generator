@@ -116,3 +116,25 @@ model Creative {
 
   @@index([requestId])
 }
+
+model CreditTransaction {
+  id            String   @id @default(cuid())
+  userId        String
+  amount        Int
+  reason        String
+  stripeEventId String?  @unique
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  stripeCustomerId     String    @unique
+  stripeSubscriptionId String?   @unique
+  status               String
+  tier                 String
+  currentPeriodEnd     DateTime?
+  updatedAt            DateTime  @updatedAt
+}

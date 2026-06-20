@@ -49,6 +49,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "satori": "^0.26.0",
+    "stripe": "^22.2.1",
     "svix": "^1.95.1"
   },
   "devDependencies": {

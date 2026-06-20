@@ -1,0 +1,16 @@
+enum BillingTier {
+  BASIC
+  PRO
+}
+
+type CheckoutSession {
+  url: String!
+}
+
+extend type Query {
+  myBalance: Int!
+}
+
+extend type Mutation {
+  createCheckoutSession(tier: BillingTier!): CheckoutSession!
+}

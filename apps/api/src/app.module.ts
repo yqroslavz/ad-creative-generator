@@ -5,6 +5,7 @@ import { LoggerModule } from './logger/logger.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { AuthModule } from './auth/auth.module';
+import { BillingModule } from './billing/billing.module';
 import { CredentialsModule } from './credentials/credentials.module';
 import { GenerationModule } from './generation/generation.module';
 import { GraphqlModule } from './graphql/graphql.module';
@@ -24,6 +25,7 @@ import { UsersModule } from './users/users.module';
     ProjectsModule,
     CredentialsModule,
     GenerationModule,
+    BillingModule,
     HealthModule,
     WebhooksModule,
   ],

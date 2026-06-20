@@ -4,6 +4,11 @@ import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
+    // TODO(Yaroslav): implement per CLAUDE.md Node 1 — scope raw body parsing to
+    // the /stripe/webhook route only (e.g. express.raw on that path) so Stripe
+    // signature verification sees the original bytes, while every other route,
+    // especially GraphQL, keeps JSON parsing. `rawBody: true` is the current
+    // global capture; decide and justify the scoping in NOTES.md.
     rawBody: true,
     bufferLogs: true,
   });
