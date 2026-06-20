@@ -126,6 +126,20 @@ graphql(/* GraphQL */ `
   }
 `);
 
+graphql(/* GraphQL */ `
+  query MyBalance {
+    myBalance
+  }
+`);
+
+graphql(/* GraphQL */ `
+  mutation CreateCheckoutSession($tier: BillingTier!) {
+    createCheckoutSession(tier: $tier) {
+      url
+    }
+  }
+`);
+
 export {
   ProjectsDocument,
   ProjectDocument,
@@ -138,4 +152,6 @@ export {
   DeleteApiKeyDocument,
   RegenerateCreativeDocument,
   RetryGenerationDocument,
+  MyBalanceDocument,
+  CreateCheckoutSessionDocument,
 } from '@/lib/gql/graphql';

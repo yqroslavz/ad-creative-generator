@@ -25,6 +25,8 @@ type Documents = {
     "\n  mutation DeleteApiKey($provider: TextProvider!) {\n    deleteApiKey(provider: $provider)\n  }\n": typeof types.DeleteApiKeyDocument,
     "\n  mutation RegenerateCreative($creativeId: ID!) {\n    regenerateCreative(creativeId: $creativeId) {\n      id\n    }\n  }\n": typeof types.RegenerateCreativeDocument,
     "\n  mutation RetryGeneration($id: ID!) {\n    retryGeneration(id: $id) {\n      id\n      status\n    }\n  }\n": typeof types.RetryGenerationDocument,
+    "\n  query MyBalance {\n    myBalance\n  }\n": typeof types.MyBalanceDocument,
+    "\n  mutation CreateCheckoutSession($tier: BillingTier!) {\n    createCheckoutSession(tier: $tier) {\n      url\n    }\n  }\n": typeof types.CreateCheckoutSessionDocument,
 };
 const documents: Documents = {
     "\n  query Projects {\n    projects {\n      id\n      name\n      adNetwork\n      offerDescription\n      targetAudience\n      landingPageUrl\n      createdAt\n      updatedAt\n    }\n  }\n": types.ProjectsDocument,
@@ -38,6 +40,8 @@ const documents: Documents = {
     "\n  mutation DeleteApiKey($provider: TextProvider!) {\n    deleteApiKey(provider: $provider)\n  }\n": types.DeleteApiKeyDocument,
     "\n  mutation RegenerateCreative($creativeId: ID!) {\n    regenerateCreative(creativeId: $creativeId) {\n      id\n    }\n  }\n": types.RegenerateCreativeDocument,
     "\n  mutation RetryGeneration($id: ID!) {\n    retryGeneration(id: $id) {\n      id\n      status\n    }\n  }\n": types.RetryGenerationDocument,
+    "\n  query MyBalance {\n    myBalance\n  }\n": types.MyBalanceDocument,
+    "\n  mutation CreateCheckoutSession($tier: BillingTier!) {\n    createCheckoutSession(tier: $tier) {\n      url\n    }\n  }\n": types.CreateCheckoutSessionDocument,
 };
 
 /**
@@ -98,6 +102,14 @@ export function graphql(source: "\n  mutation RegenerateCreative($creativeId: ID
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  mutation RetryGeneration($id: ID!) {\n    retryGeneration(id: $id) {\n      id\n      status\n    }\n  }\n"): (typeof documents)["\n  mutation RetryGeneration($id: ID!) {\n    retryGeneration(id: $id) {\n      id\n      status\n    }\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query MyBalance {\n    myBalance\n  }\n"): (typeof documents)["\n  query MyBalance {\n    myBalance\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation CreateCheckoutSession($tier: BillingTier!) {\n    createCheckoutSession(tier: $tier) {\n      url\n    }\n  }\n"): (typeof documents)["\n  mutation CreateCheckoutSession($tier: BillingTier!) {\n    createCheckoutSession(tier: $tier) {\n      url\n    }\n  }\n"];
 
 export function graphql(source: string) {
   return (documents as any)[source] ?? {};
